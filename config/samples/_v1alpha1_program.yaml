@@ -1,0 +1,12 @@
+apiVersion: omd.com/v1alpha1
+kind: Program
+metadata:
+  labels:
+    app.kubernetes.io/name: program
+    app.kubernetes.io/instance: program-sample
+    app.kubernetes.io/part-of: omd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: omd-operator
+  name: program-sample
+spec:
+  # TODO(user): Add fields here

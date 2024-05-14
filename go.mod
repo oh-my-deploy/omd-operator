@@ -110,7 +110,7 @@ require (
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/skeema/knownhosts v1.2.1 // indirect
-	github.com/spf13/cobra v1.7.0 // indirect
+	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
@@ -165,10 +165,9 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-
 replace (
 	k8s.io/cloud-provider => k8s.io/cloud-provider v0.26.11
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.26.11 
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.26.11
 	k8s.io/controller-manager => k8s.io/controller-manager v0.26.11
 	k8s.io/cri-api => k8s.io/cri-api v0.26.11
 	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.26.11

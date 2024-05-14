@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ArgoDriver struct {
+type ArgoCDClient struct {
 	Kubernetes        client.Client
 	applicationClient application.ApplicationServiceClient
 	projectClient     project.ProjectServiceClient
@@ -19,7 +19,6 @@ type ArgoDriverConfig struct {
 	Token   string
 }
 
-func NewArgoClient(cfg ArgoDriverConfig) ArgoDriver {
-
-	return ArgoDriver{}
+func NewArgoClient(cfg ArgoDriverConfig) ArgoCDClient {
+	return ArgoCDClient{}
 }

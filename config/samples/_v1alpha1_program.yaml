@@ -9,4 +9,15 @@ metadata:
     app.kubernetes.io/created-by: omd-operator
   name: program-sample
 spec:
-  # TODO(user): Add fields here
+  app:
+    image: nginx:latest
+    replicas: 1
+    containerPort: 80
+    appType: server
+  service:
+    enabled: true
+  serviceAccount:
+    create: true
+
+
+

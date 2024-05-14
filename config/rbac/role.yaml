@@ -1,0 +1,33 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - omd.com
+  resources:
+  - programs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - omd.com
+  resources:
+  - programs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - omd.com
+  resources:
+  - programs/status
+  verbs:
+  - get
+  - patch
+  - update

@@ -20,6 +20,7 @@ import (
 	v2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -32,6 +33,13 @@ type AppSpec struct {
 	AppType       string            `json:"appType,omitempty"` // back, front-spa, front-srr
 	Annotations   map[string]string `json:"annotations,omitempty"`
 	Probe         ProbeSpec         `json:"probe,omitempty"`
+}
+
+type DeploySpec struct {
+	Branch string `json:"branch"`
+	Path   string `json:"path"`
+	Repo   string `json:"repo"`
+	Server string `json:"server"`
 }
 
 type ProbeSpec struct {
@@ -105,10 +113,12 @@ type ProgramSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 	// Foo is an example field of Program. Edit program_types.go to remove/update
 	Foo            string              `json:"foo,omitempty"`
+	App            *AppSpec            `json:"app,omitempty"`
 	Service        *ServiceSpec        `json:"service,omitempty"`
 	ServiceAccount *ServiceAccountSpec `json:"serviceAccount,omitempty"`
 	Ingress        *IngressSpec        `json:"ingress,omitempty"`
 	Scheduler      *SchedulerSpec      `json:"scheduler,omitempty"`
+	Deploy         *DeploySpec         `json:"deploy,omitempty"`
 }
 
 // ProgramStatus defines the observed state of Program
@@ -140,4 +150,53 @@ type ProgramList struct {
 
 func init() {
 	SchemeBuilder.Register(&Program{}, &ProgramList{})
+}
+
+func (p *Program) ConvertToService() v1.Service {
+
+	return v1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: p.Name,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+			Annotations: p.Spec.Service.Annotations,
+		},
+		Spec: v1.ServiceSpec{
+			Type: v1.ServiceTypeClusterIP,
+			Selector: map[string]string{
+				"app": p.ObjectMeta.Name,
+			},
+			Ports: []v1.ServicePort{
+				{
+					Name: "port",
+					Port: p.Spec.App.ContainerPort,
+					TargetPort: intstr.IntOrString{
+						IntVal: p.Spec.App.ContainerPort,
+					},
+				},
+			},
+		},
+	}
+}
+
+func (p *Program) ConvertToServiceAccount() v1.ServiceAccount {
+	return v1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ServiceAccount",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        p.Name,
+			Annotations: p.Spec.ServiceAccount.Annotations,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+		},
+		AutomountServiceAccountToken: p.Spec.ServiceAccount.AutomountServiceAccountToken,
+	}
 }

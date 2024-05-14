@@ -25,10 +25,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	omdcomv1alpha1 "github.com/oh-my-deploy/omd-operator/api/v1alpha1"
+	"github.com/oh-my-deploy/omd-operator/internal"
 )
 
 // ProgramReconciler reconciles a Program object
 type ProgramReconciler struct {
+	OmdManager internal.OmdManager
 	client.Client
 	Scheme *runtime.Scheme
 }
@@ -47,11 +49,9 @@ type ProgramReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *ProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
-
-	return ctrl.Result{}, nil
+	klog := log.FromContext(ctx)
+	klog.Info("Reconciling start Program")
+	return r.OmdManager.ProgramClient.Reconcile(ctx, req)
 }
 
 // SetupWithManager sets up the controller with the Manager.

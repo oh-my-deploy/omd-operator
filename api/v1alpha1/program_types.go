@@ -45,7 +45,8 @@ type DeploySpec struct {
 
 type PodDisruptionBudgetSpec struct {
 	// +optional
-	Enabled *bool `json:"enabled,omitempty"`
+	// +kubebuilder:default=false
+	Enabled bool `json:"enabled,omitempty"`
 	// +optional
 	MinAvailable *int32 `json:"minAvailable,omitempty"`
 	// +optional
@@ -53,11 +54,13 @@ type PodDisruptionBudgetSpec struct {
 }
 
 type ServiceSpec struct {
+	// +kubebuilder:default=false
 	Enabled     bool              `json:"enabled"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type IngressSpec struct {
+	// +kubebuilder:default=false
 	Enabled     bool              `json:"enabled"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	Rules       IngressRulesSpec  `json:"rules"`
@@ -79,7 +82,8 @@ type IngressPath struct {
 }
 
 type ServiceAccountSpec struct {
-	Create *bool `json:"create,omitempty"`
+	// +kubebuilder:default=false
+	Create bool `json:"create,omitempty"`
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +optional
@@ -88,7 +92,7 @@ type ServiceAccountSpec struct {
 }
 
 type HorizontalPodAutoScalerSpec struct {
-	Enabled     *bool             `json:"enabled,omitempty"`
+	Enabled     bool              `json:"enabled,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
 	MinReplicas *int32            `json:"minReplicas,omitempty"`
 	MaxReplicas *int32            `json:"maxReplicas,omitempty"`
@@ -106,8 +110,6 @@ type SchedulerSpec struct {
 type ProgramSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	// Foo is an example field of Program. Edit program_types.go to remove/update
-	Foo            string              `json:"foo,omitempty"`
 	App            *AppSpec            `json:"app,omitempty"`
 	Service        *ServiceSpec        `json:"service,omitempty"`
 	ServiceAccount *ServiceAccountSpec `json:"serviceAccount,omitempty"`

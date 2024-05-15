@@ -36,6 +36,8 @@ spec:
             description: ProgramSpec defines the desired state of Program
             properties:
               app:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
+                  Important: Run "make" to regenerate code after modifying this file'
                 properties:
                   annotations:
                     additionalProperties:
@@ -1332,11 +1334,6 @@ spec:
                 - repo
                 - server
                 type: object
-              foo:
-                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-                  Important: Run "make" to regenerate code after modifying this file
-                  Foo is an example field of Program. Edit program_types.go to remove/update'
-                type: string
               ingress:
                 properties:
                   annotations:
@@ -1344,6 +1341,7 @@ spec:
                       type: string
                     type: object
                   enabled:
+                    default: false
                     type: boolean
                   rules:
                     properties:
@@ -2760,6 +2758,7 @@ spec:
                   pdb:
                     properties:
                       enabled:
+                        default: false
                         type: boolean
                       maxUnavailable:
                         format: int32
@@ -2776,6 +2775,7 @@ spec:
                       type: string
                     type: object
                   enabled:
+                    default: false
                     type: boolean
                 required:
                 - enabled
@@ -2789,6 +2789,7 @@ spec:
                   automountServiceAccountToken:
                     type: boolean
                   create:
+                    default: false
                     type: boolean
                   serviceAccountName:
                     type: string

@@ -257,7 +257,7 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 	if p.Spec.Scheduler.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = p.Spec.Scheduler.NodeSelector
 	}
-	if reflect.ValueOf(p.Spec.Scheduler.Affinity).IsZero() {
+	if !reflect.ValueOf(p.Spec.Scheduler.Affinity).IsZero() {
 		deployment.Spec.Template.Spec.Affinity = &p.Spec.Scheduler.Affinity
 	}
 

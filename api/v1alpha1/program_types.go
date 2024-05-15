@@ -30,10 +30,11 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type AppSpec struct {
-	Container   v1.Container      `json:"container,omitempty"`
-	Replicas    *int32            `json:"replicas,omitempty"`
-	AppType     string            `json:"appType,omitempty"` // back, front-spa, front-srr
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Container         v1.Container      `json:"container"`
+	Replicas          int32             `json:"replicas,omitempty"`
+	AppType           string            `json:"appType,omitempty"` // back, front-spa, front-srr
+	PodAnnotations    map[string]string `json:"podAnnotations,omitempty"`
+	DeployAnnotations map[string]string `json:"deployAnnotations,omitempty"`
 }
 
 type DeploySpec struct {
@@ -48,9 +49,9 @@ type PodDisruptionBudgetSpec struct {
 	// +kubebuilder:default=false
 	Enabled bool `json:"enabled,omitempty"`
 	// +optional
-	MinAvailable *int32 `json:"minAvailable,omitempty"`
+	MinAvailable int32 `json:"minAvailable,omitempty"`
 	// +optional
-	MaxUnavailable *int32 `json:"maxUnavailable,omitempty"`
+	MaxUnavailable int32 `json:"maxUnavailable,omitempty"`
 }
 
 type ServiceSpec struct {
@@ -78,7 +79,7 @@ type IngressPath struct {
 	// +optional
 	ServiceName string `json:"serviceName,omitempty"`
 	// +optional
-	Port *int32 `json:"port,omitempty"`
+	Port int32 `json:"port,omitempty"`
 }
 
 type ServiceAccountSpec struct {
@@ -94,8 +95,8 @@ type ServiceAccountSpec struct {
 type HorizontalPodAutoScalerSpec struct {
 	Enabled     bool              `json:"enabled,omitempty"`
 	Annotations map[string]string `json:"annotations,omitempty"`
-	MinReplicas *int32            `json:"minReplicas,omitempty"`
-	MaxReplicas *int32            `json:"maxReplicas,omitempty"`
+	MinReplicas int32             `json:"minReplicas,omitempty"`
+	MaxReplicas int32             `json:"maxReplicas,omitempty"`
 	Metrics     []v2.MetricSpec   `json:"metrics,omitempty"`
 }
 
@@ -151,8 +152,7 @@ func init() {
 }
 
 func (p *Program) ConvertToService() v1.Service {
-
-	return v1.Service{
+	service := v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
@@ -162,7 +162,6 @@ func (p *Program) ConvertToService() v1.Service {
 			Labels: map[string]string{
 				"app": p.Name,
 			},
-			Annotations: p.Spec.Service.Annotations,
 		},
 		Spec: v1.ServiceSpec{
 			Type: v1.ServiceTypeClusterIP,
@@ -180,23 +179,30 @@ func (p *Program) ConvertToService() v1.Service {
 			},
 		},
 	}
+	if p.Spec.Service.Annotations != nil {
+		service.Annotations = p.Spec.Service.Annotations
+	}
+	return service
 }
 
 func (p *Program) ConvertToServiceAccount() v1.ServiceAccount {
-	return v1.ServiceAccount{
+	sa := v1.ServiceAccount{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ServiceAccount",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        p.Name,
-			Annotations: p.Spec.ServiceAccount.Annotations,
+			Name: p.Name,
 			Labels: map[string]string{
 				"app": p.Name,
 			},
 		},
 		AutomountServiceAccountToken: p.Spec.ServiceAccount.AutomountServiceAccountToken,
 	}
+	if p.Spec.ServiceAccount.Annotations != nil {
+		sa.Annotations = p.Spec.ServiceAccount.Annotations
+	}
+	return sa
 }
 
 func (p *Program) ConvertToDeployment() appv1.Deployment {
@@ -206,8 +212,7 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        p.Name,
-			Annotations: p.Spec.App.Annotations,
+			Name: p.Name,
 			Labels: map[string]string{
 				"app": p.Name,
 			},
@@ -234,8 +239,14 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 		},
 	}
 
-	if *p.Spec.App.Replicas != 0 {
-		deployment.Spec.Replicas = p.Spec.App.Replicas
+	if p.Spec.App.DeployAnnotations != nil {
+		deployment.Annotations = p.Spec.App.DeployAnnotations
+	}
+	if p.Spec.App.PodAnnotations != nil {
+		deployment.Spec.Template.ObjectMeta.Annotations = p.Spec.App.PodAnnotations
+	}
+	if p.Spec.App.Replicas != 0 {
+		deployment.Spec.Replicas = &p.Spec.App.Replicas
 	}
 	if p.Spec.Scheduler.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = p.Spec.Scheduler.NodeSelector
@@ -247,14 +258,13 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 }
 
 func (p *Program) ConvertToIngress() networking.Ingress {
-	return networking.Ingress{
+	ingress := networking.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "networking.k8s.io/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        p.Name,
-			Annotations: p.Spec.Ingress.Annotations,
+			Name: p.Name,
 			Labels: map[string]string{
 				"app": p.Name,
 			},
@@ -272,6 +282,11 @@ func (p *Program) ConvertToIngress() networking.Ingress {
 			},
 		},
 	}
+
+	if p.Spec.Ingress.Annotations != nil {
+		ingress.Annotations = p.Spec.Ingress.Annotations
+	}
+	return ingress
 }
 
 func (p *Program) createIngressPaths(rules []IngressPath) []networking.HTTPIngressPath {
@@ -283,7 +298,7 @@ func (p *Program) createIngressPaths(rules []IngressPath) []networking.HTTPIngre
 				Service: &networking.IngressServiceBackend{
 					Name: rule.ServiceName,
 					Port: networking.ServiceBackendPort{
-						Number: *rule.Port,
+						Number: rule.Port,
 					},
 				},
 			},
@@ -314,13 +329,13 @@ func (p *Program) ConvertToPdb() policyv1.PodDisruptionBudget {
 			},
 		},
 	}
-	if p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable != nil {
+	if p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable != 0 {
 		pdb.Spec.MaxUnavailable = &intstr.IntOrString{
-			IntVal: *p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable,
+			IntVal: p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable,
 		}
 	} else {
 		pdb.Spec.MinAvailable = &intstr.IntOrString{
-			IntVal: *p.Spec.Scheduler.PodDisruptionBudget.MinAvailable,
+			IntVal: p.Spec.Scheduler.PodDisruptionBudget.MinAvailable,
 		}
 	}
 	return pdb
@@ -334,7 +349,7 @@ func (p *Program) ConvertToHPA() v2.HorizontalPodAutoscaler {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        p.Name,
-			Annotations: p.Spec.Scheduler.HorizontalPodAutoScaler.Annotations,
+			Annotations: p.Annotations,
 			Labels: map[string]string{
 				"app": p.Name,
 			},
@@ -345,8 +360,8 @@ func (p *Program) ConvertToHPA() v2.HorizontalPodAutoscaler {
 				Kind:       "Deployment",
 				Name:       p.Name,
 			},
-			MinReplicas: p.Spec.Scheduler.HorizontalPodAutoScaler.MinReplicas,
-			MaxReplicas: *p.Spec.Scheduler.HorizontalPodAutoScaler.MaxReplicas,
+			MinReplicas: &p.Spec.Scheduler.HorizontalPodAutoScaler.MinReplicas,
+			MaxReplicas: p.Spec.Scheduler.HorizontalPodAutoScaler.MaxReplicas,
 			Metrics:     p.Spec.Scheduler.HorizontalPodAutoScaler.Metrics,
 		},
 	}

@@ -39,10 +39,6 @@ spec:
                 description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
                   Important: Run "make" to regenerate code after modifying this file'
                 properties:
-                  annotations:
-                    additionalProperties:
-                      type: string
-                    type: object
                   appType:
                     type: string
                   container:
@@ -1314,9 +1310,19 @@ spec:
                     required:
                     - name
                     type: object
+                  deployAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  podAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   replicas:
                     format: int32
                     type: integer
+                required:
+                - container
                 type: object
               deploy:
                 properties:

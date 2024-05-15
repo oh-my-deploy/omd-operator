@@ -18,14 +18,13 @@ package controllers
 
 import (
 	"context"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 
 	omdcomv1alpha1 "github.com/oh-my-deploy/omd-operator/api/v1alpha1"
 	"github.com/oh-my-deploy/omd-operator/internal"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProgramReconciler reconciles a Program object
@@ -35,9 +34,12 @@ type ProgramReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=omd.com,resources=programs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=omd.com,resources=programs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=omd.com,resources=programs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=omd.com,resources=programs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=omd.com,resources=programs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=omd.com,resources=programs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=argoproj.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;create;delete
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -49,8 +51,6 @@ type ProgramReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *ProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	klog := log.FromContext(ctx)
-	klog.Info("Reconciling start Program")
 	return r.OmdManager.ProgramClient.Reconcile(ctx, req)
 }
 
@@ -58,5 +58,6 @@ func (r *ProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *ProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&omdcomv1alpha1.Program{}).
+		Owns(&argocdv1alpha1.Application{}).
 		Complete(r)
 }

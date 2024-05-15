@@ -17,22 +17,23 @@ limitations under the License.
 package v1alpha1
 
 import (
+	appv1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/kubernetes/pkg/apis/networking"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 type AppSpec struct {
-	Image         string            `json:"image"`
-	ContainerPort int32             `json:"containerPort"`
-	Replicas      *int32            `json:"replicas,omitempty"`
-	AppType       string            `json:"appType,omitempty"` // back, front-spa, front-srr
-	Annotations   map[string]string `json:"annotations,omitempty"`
-	Probe         ProbeSpec         `json:"probe,omitempty"`
+	Container   v1.Container      `json:"container,omitempty"`
+	Replicas    *int32            `json:"replicas,omitempty"`
+	AppType     string            `json:"appType,omitempty"` // back, front-spa, front-srr
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 type DeploySpec struct {
@@ -40,12 +41,6 @@ type DeploySpec struct {
 	Path   string `json:"path"`
 	Repo   string `json:"repo"`
 	Server string `json:"server"`
-}
-
-type ProbeSpec struct {
-	Startup   *v1.Probe `json:"startup,omitempty"`
-	Liveness  *v1.Probe `json:"liveness,omitempty"`
-	Readiness *v1.Probe `json:"readiness,omitempty"`
 }
 
 type PodDisruptionBudgetSpec struct {
@@ -125,6 +120,7 @@ type ProgramSpec struct {
 type ProgramStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Foo string `json:"foo,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -174,9 +170,9 @@ func (p *Program) ConvertToService() v1.Service {
 			Ports: []v1.ServicePort{
 				{
 					Name: "port",
-					Port: p.Spec.App.ContainerPort,
+					Port: p.Spec.App.Container.Ports[0].ContainerPort,
 					TargetPort: intstr.IntOrString{
-						IntVal: p.Spec.App.ContainerPort,
+						IntVal: p.Spec.App.Container.Ports[0].ContainerPort,
 					},
 				},
 			},
@@ -199,4 +195,158 @@ func (p *Program) ConvertToServiceAccount() v1.ServiceAccount {
 		},
 		AutomountServiceAccountToken: p.Spec.ServiceAccount.AutomountServiceAccountToken,
 	}
+}
+
+func (p *Program) ConvertToDeployment() appv1.Deployment {
+	deployment := appv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        p.Name,
+			Annotations: p.Spec.App.Annotations,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+		},
+		Spec: appv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": p.Name,
+				},
+			},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: p.Name,
+					Labels: map[string]string{
+						"app": p.Name,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{
+						p.Spec.App.Container,
+					},
+				},
+			},
+		},
+	}
+
+	if *p.Spec.App.Replicas != 0 {
+		deployment.Spec.Replicas = p.Spec.App.Replicas
+	}
+	if p.Spec.Scheduler.NodeSelector != nil {
+		deployment.Spec.Template.Spec.NodeSelector = p.Spec.Scheduler.NodeSelector
+	}
+	if p.Spec.Scheduler.Affinity != nil {
+		deployment.Spec.Template.Spec.Affinity = p.Spec.Scheduler.Affinity
+	}
+	return deployment
+}
+
+func (p *Program) ConvertToIngress() networking.Ingress {
+	return networking.Ingress{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Ingress",
+			APIVersion: "networking.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        p.Name,
+			Annotations: p.Spec.Ingress.Annotations,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+		},
+		Spec: networking.IngressSpec{
+			Rules: []networking.IngressRule{
+				{
+					Host: p.Spec.Ingress.Rules.Host,
+					IngressRuleValue: networking.IngressRuleValue{
+						HTTP: &networking.HTTPIngressRuleValue{
+							Paths: p.createIngressPaths(p.Spec.Ingress.Rules.Paths),
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func (p *Program) createIngressPaths(rules []IngressPath) []networking.HTTPIngressPath {
+	networkPaths := make([]networking.HTTPIngressPath, 0)
+	for _, rule := range rules {
+		newPath := networking.HTTPIngressPath{
+			Path: rule.Path,
+			Backend: networking.IngressBackend{
+				Service: &networking.IngressServiceBackend{
+					Name: rule.ServiceName,
+					Port: networking.ServiceBackendPort{
+						Number: *rule.Port,
+					},
+				},
+			},
+		}
+		networkPaths = append(networkPaths, newPath)
+	}
+	return networkPaths
+}
+
+func (p *Program) ConvertToPdb() policyv1.PodDisruptionBudget {
+	pdb := policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policy/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        p.Name,
+			Annotations: p.Annotations,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": p.Name,
+				},
+			},
+		},
+	}
+	if p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable != nil {
+		pdb.Spec.MaxUnavailable = &intstr.IntOrString{
+			IntVal: *p.Spec.Scheduler.PodDisruptionBudget.MaxUnavailable,
+		}
+	} else {
+		pdb.Spec.MinAvailable = &intstr.IntOrString{
+			IntVal: *p.Spec.Scheduler.PodDisruptionBudget.MinAvailable,
+		}
+	}
+	return pdb
+}
+
+func (p *Program) ConvertToHPA() v2.HorizontalPodAutoscaler {
+	hpa := v2.HorizontalPodAutoscaler{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "HorizontalPodAutoscaler",
+			APIVersion: "autoscaling/v2",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        p.Name,
+			Annotations: p.Spec.Scheduler.HorizontalPodAutoScaler.Annotations,
+			Labels: map[string]string{
+				"app": p.Name,
+			},
+		},
+		Spec: v2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: v2.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       p.Name,
+			},
+			MinReplicas: p.Spec.Scheduler.HorizontalPodAutoScaler.MinReplicas,
+			MaxReplicas: *p.Spec.Scheduler.HorizontalPodAutoScaler.MaxReplicas,
+			Metrics:     p.Spec.Scheduler.HorizontalPodAutoScaler.Metrics,
+		},
+	}
+	return hpa
 }

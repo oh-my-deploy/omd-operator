@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"reflect"
+
 	appv1 "k8s.io/api/apps/v1"
 	v2 "k8s.io/api/autoscaling/v2"
 	v1 "k8s.io/api/core/v1"
@@ -104,11 +106,11 @@ type SchedulerSpec struct {
 	// +optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 	// +optional
-	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"pdb,omitempty"`
+	PodDisruptionBudget PodDisruptionBudgetSpec `json:"pdb,omitempty"`
 	// +optional
-	HorizontalPodAutoScaler *HorizontalPodAutoScalerSpec `json:"hpa,omitempty"`
+	HorizontalPodAutoScaler HorizontalPodAutoScalerSpec `json:"hpa,omitempty"`
 	// +optional
-	Affinity *v1.Affinity `json:"affinity,omitempty"`
+	Affinity v1.Affinity `json:"affinity,omitempty"`
 }
 
 // ProgramSpec defines the desired state of Program
@@ -255,8 +257,8 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 	if p.Spec.Scheduler.NodeSelector != nil {
 		deployment.Spec.Template.Spec.NodeSelector = p.Spec.Scheduler.NodeSelector
 	}
-	if p.Spec.Scheduler.Affinity != nil {
-		deployment.Spec.Template.Spec.Affinity = p.Spec.Scheduler.Affinity
+	if reflect.ValueOf(p.Spec.Scheduler.Affinity).IsZero() {
+		deployment.Spec.Template.Spec.Affinity = &p.Spec.Scheduler.Affinity
 	}
 
 	if p.Spec.ServiceAccount.Create {

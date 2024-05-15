@@ -101,22 +101,26 @@ type HorizontalPodAutoScalerSpec struct {
 }
 
 type SchedulerSpec struct {
-	NodeSelector            map[string]string            `json:"nodeSelector,omitempty"`
-	PodDisruptionBudget     *PodDisruptionBudgetSpec     `json:"pdb,omitempty"`
+	// +optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	// +optional
+	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"pdb,omitempty"`
+	// +optional
 	HorizontalPodAutoScaler *HorizontalPodAutoScalerSpec `json:"hpa,omitempty"`
-	Affinity                *v1.Affinity                 `json:"affinity,omitempty"`
+	// +optional
+	Affinity *v1.Affinity `json:"affinity,omitempty"`
 }
 
 // ProgramSpec defines the desired state of Program
 type ProgramSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	App            *AppSpec            `json:"app,omitempty"`
-	Service        *ServiceSpec        `json:"service,omitempty"`
-	ServiceAccount *ServiceAccountSpec `json:"serviceAccount,omitempty"`
-	Ingress        *IngressSpec        `json:"ingress,omitempty"`
-	Scheduler      *SchedulerSpec      `json:"scheduler,omitempty"`
-	Deploy         *DeploySpec         `json:"deploy,omitempty"`
+	App            AppSpec            `json:"app,omitempty"`
+	Service        ServiceSpec        `json:"service,omitempty"`
+	ServiceAccount ServiceAccountSpec `json:"serviceAccount,omitempty"`
+	Ingress        IngressSpec        `json:"ingress,omitempty"`
+	Scheduler      SchedulerSpec      `json:"scheduler,omitempty"`
+	Deploy         DeploySpec         `json:"deploy,omitempty"`
 }
 
 // ProgramStatus defines the observed state of Program
@@ -254,6 +258,13 @@ func (p *Program) ConvertToDeployment() appv1.Deployment {
 	if p.Spec.Scheduler.Affinity != nil {
 		deployment.Spec.Template.Spec.Affinity = p.Spec.Scheduler.Affinity
 	}
+
+	if p.Spec.ServiceAccount.Create {
+		deployment.Spec.Template.Spec.ServiceAccountName = p.Name
+	} else {
+		deployment.Spec.Template.Spec.ServiceAccountName = p.Spec.ServiceAccount.ServiceAccountName
+	}
+
 	return deployment
 }
 

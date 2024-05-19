@@ -7,14 +7,24 @@ import (
 )
 
 type OmdManager struct {
-	KubeClient    client.Client
-	ProgramClient *driver.ProgramClient
+	KubeClient            client.Client
+	ArgoCDClient          *driver.ArgoCDClient
+	ProgramClient         *driver.ProgramClient
+	PreviewTemplateClient *driver.PreviewTemplateClient
+	PreviewClient         *driver.PreviewClient
 }
 
-func NewOmdManager(kube client.Client, schmea *runtime.Scheme) OmdManager {
-	programClient := driver.NewProgramClient(kube, schmea)
+func NewOmdManager(kube client.Client, scheme *runtime.Scheme) OmdManager {
+	programClient := driver.NewProgramClient(kube, scheme)
+	previewTemplateClient := driver.NewPreviewTemplateClient(kube)
+	argoCDClient := driver.NewArgoClient(kube)
+	githubClient := driver.NewGithubClient()
+	previewClient := driver.NewPreviewClient(kube, githubClient)
 	return OmdManager{
-		KubeClient:    kube,
-		ProgramClient: programClient,
+		KubeClient:            kube,
+		ProgramClient:         programClient,
+		PreviewTemplateClient: previewTemplateClient,
+		PreviewClient:         previewClient,
+		ArgoCDClient:          argoCDClient,
 	}
 }

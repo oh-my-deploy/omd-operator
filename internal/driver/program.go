@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 )
 
 const applicationFinalizer = "argoproj.io/finalizer"
@@ -42,6 +43,9 @@ func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	}
 
 	if err = p.SyncArgo(ctx, req, program); err != nil {
+		if errors.IsConflict(err) {
+			return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 15}, nil
+		}
 		klog.Error(err, err.Error())
 		return ctrl.Result{}, err
 	}
@@ -95,7 +99,6 @@ func (p *ProgramClient) SyncArgo(ctx context.Context, req ctrl.Request, program 
 		klog.Info("Update start argo")
 		err = p.KubeClient.Update(ctx, currentApp)
 		if err != nil {
-			klog.Error(err, "Failed to update Argo")
 			return err
 		}
 		klog.Info("Updated ArgoCD application.")

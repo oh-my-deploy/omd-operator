@@ -1366,8 +1366,6 @@ spec:
                           type: object
                         type: array
                         x-kubernetes-list-type: atomic
-                    required:
-                    - paths
                     type: object
                 required:
                 - enabled
@@ -2800,6 +2798,8 @@ spec:
                   serviceAccountName:
                     type: string
                 type: object
+            required:
+            - deploy
             type: object
           status:
             description: ProgramStatus defines the observed state of Program

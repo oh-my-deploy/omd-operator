@@ -36,6 +36,58 @@ rules:
 - apiGroups:
   - omd.com
   resources:
+  - previews
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - omd.com
+  resources:
+  - previews/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - omd.com
+  resources:
+  - previews/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - omd.com
+  resources:
+  - previewtemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - omd.com
+  resources:
+  - previewtemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - omd.com
+  resources:
+  - previewtemplates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - omd.com
+  resources:
   - programs
   verbs:
   - create

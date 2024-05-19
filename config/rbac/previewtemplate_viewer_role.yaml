@@ -1,0 +1,27 @@
+# permissions for end users to view previewtemplates.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: previewtemplate-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: omd-operator
+    app.kubernetes.io/part-of: omd-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: previewtemplate-viewer-role
+rules:
+- apiGroups:
+  - omd.com
+  resources:
+  - previewtemplates
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - omd.com
+  resources:
+  - previewtemplates/status
+  verbs:
+  - get

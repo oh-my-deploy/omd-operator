@@ -1,0 +1,15 @@
+apiVersion: omd.com/v1alpha1
+kind: Preview
+metadata:
+  labels:
+    app.kubernetes.io/name: preview
+    app.kubernetes.io/instance: preview-sample
+    app.kubernetes.io/part-of: omd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: omd-operator
+  name: preview-sample
+spec:
+  template:
+    name: previewtemplate-sample2
+    params:
+      Port: "80"

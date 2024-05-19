@@ -102,6 +102,22 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Program")
 		os.Exit(1)
 	}
+	if err = (&controllers.PreviewReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		OmdManager: OmdManager,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Preview")
+		os.Exit(1)
+	}
+	if err = (&controllers.PreviewTemplateReconciler{
+		Client:     mgr.GetClient(),
+		Scheme:     mgr.GetScheme(),
+		OmdManager: OmdManager,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PreviewTemplate")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

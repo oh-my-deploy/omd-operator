@@ -1,18 +1,34 @@
 domain: omd.com
 layout:
-- go.kubebuilder.io/v3
+  - go.kubebuilder.io/v3
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: omd-operator
 repo: github.com/oh-my-deploy/omd-operator
 resources:
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: omd.com
-  kind: Program
-  path: github.com/oh-my-deploy/omd-operator/api/v1alpha1
-  version: v1alpha1
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: true
+    domain: omd.com
+    kind: Program
+    path: github.com/oh-my-deploy/omd-operator/api/v1alpha1
+    version: v1alpha1
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: true
+    domain: omd.com
+    kind: Preview
+    path: github.com/oh-my-deploy/omd-operator/api/v1alpha1
+    version: v1alpha1
+  - api:
+      crdVersion: v1
+      namespaced: true
+    controller: true
+    domain: omd.com
+    kind: PreviewTemplate
+    path: github.com/oh-my-deploy/omd-operator/api/v1alpha1
+    version: v1alpha1
 version: "3"

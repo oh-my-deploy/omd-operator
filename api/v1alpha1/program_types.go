@@ -72,7 +72,7 @@ type IngressSpec struct {
 type IngressRulesSpec struct {
 	Host string `json:"host,omitempty"`
 	// +listType=atomic
-	Paths []IngressPath `json:"paths"`
+	Paths []IngressPath `json:"paths,omitempty"`
 }
 
 type IngressPath struct {
@@ -122,7 +122,8 @@ type ProgramSpec struct {
 	ServiceAccount ServiceAccountSpec `json:"serviceAccount,omitempty"`
 	Ingress        IngressSpec        `json:"ingress,omitempty"`
 	Scheduler      SchedulerSpec      `json:"scheduler,omitempty"`
-	Deploy         DeploySpec         `json:"deploy,omitempty"`
+	//+kubebuilder:validation:Required
+	Deploy DeploySpec `json:"deploy"`
 }
 
 // ProgramStatus defines the observed state of Program
@@ -304,9 +305,11 @@ func (p *Program) ConvertToIngress() networking.Ingress {
 
 func (p *Program) createIngressPaths(rules []IngressPath) []networking.HTTPIngressPath {
 	networkPaths := make([]networking.HTTPIngressPath, 0)
+	pathType := networking.PathTypeImplementationSpecific
 	for _, rule := range rules {
 		newPath := networking.HTTPIngressPath{
-			Path: rule.Path,
+			Path:     rule.Path,
+			PathType: &pathType,
 			Backend: networking.IngressBackend{
 				Service: &networking.IngressServiceBackend{
 					Name: rule.ServiceName,

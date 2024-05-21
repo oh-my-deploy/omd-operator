@@ -60,7 +60,7 @@ func (p *PreviewClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		}
 		return result, err
 	}
-	log.Info("finish preview reconcile", "preview", preview.Status)
+	log.Info("finish preview reconcile")
 	//TODO: build container image using github action for preview
 
 	//log.Info("end preview reconcile", "result", result)
@@ -70,6 +70,7 @@ func (p *PreviewClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (p *PreviewClient) ParsingPreviewTemplate(ctx context.Context, preview *v1alpha1.Preview) error {
 	log := ctrllog.FromContext(ctx)
 	var isReset bool
+	log.Info("start ParsingPreviewTemplate")
 	if len((*preview).Spec.Programs) != 0 || preview.Spec.PreviewTemplate.Name == "" {
 		return nil
 	}
@@ -88,7 +89,8 @@ func (p *PreviewClient) ParsingPreviewTemplate(ctx context.Context, preview *v1a
 		log.Error(err, "failed to convert to obj")
 		return err
 	}
-	if !reflect.DeepEqual(preview.Status.TemplateSpec, previewSpecs) {
+	if !reflect.DeepEqual(preview.Status.TemplateSpec, parsedData) {
+		(*preview).Status.TemplateSpec = parsedData
 		if err := p.KubeClient.Status().Update(ctx, preview); err != nil {
 			log.Error(err, "failed to update preview status")
 			return err
@@ -97,9 +99,10 @@ func (p *PreviewClient) ParsingPreviewTemplate(ctx context.Context, preview *v1a
 	}
 	(*preview).Spec.Programs = previewSpecs
 	if len((*preview).Status.CreatePreviewSpecStatus) == 0 || isReset == true {
+		log.Info("reset status about createPreviewStatus")
 		(*preview).Status.CreatePreviewSpecStatus = make([]v1alpha1.CreatePreviewSpecStatus, len(previewSpecs))
 	}
-	//copy((*preview).Spec.Programs, previewSpecs)
+	log.Info("end ParsingPreviewTemplate")
 	return nil
 }
 
@@ -154,6 +157,7 @@ func (p *PreviewClient) UpsertApplicationSet(ctx context.Context, preview *v1alp
 			return err
 		}
 	}
+	log.Info("end upsert application set")
 	return nil
 }
 

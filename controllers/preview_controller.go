@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"github.com/oh-my-deploy/omd-operator/internal"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -57,5 +58,6 @@ func (r *PreviewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 func (r *PreviewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&omdcomv1alpha1.Preview{}).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }

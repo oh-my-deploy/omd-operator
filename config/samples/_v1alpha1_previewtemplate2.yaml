@@ -18,6 +18,8 @@ spec:
         serviceAccount:
           create: true
         app:
+          appType: server
+          replicas: 2
           container:
             name: nginx
             image: nginx:1.26.0
@@ -27,6 +29,6 @@ spec:
                 protocol: TCP
         deploy:
           server: https://kubernetes.default.svc
-          branch: main
-          path: demo-1
+          branch: dev
+          path: ''
           repo: git@github.com:oh-my-deploy/omd-operator-example.git

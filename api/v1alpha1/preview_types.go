@@ -123,6 +123,7 @@ func (p *Preview) ConvertDeployData(paths []string) ([]apiextensionsv1.JSON, err
 		if err != nil {
 			return nil, errors.Join(err, errors.New("failed to marshal deploy"))
 		}
+		p.Spec.Programs[idx].Program.Deploy.Path = paths[idx]
 		jsonArr = append(jsonArr, apiextensionsv1.JSON{Raw: b})
 	}
 	p.Status.DeployedStatus = deployedStatuses

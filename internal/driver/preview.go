@@ -17,6 +17,10 @@ import (
 	"time"
 )
 
+const (
+	PREVIEW_FINALIZER = "preview.omd.com/finalizer"
+)
+
 type PreviewClient struct {
 	KubeClient   client.Client
 	GithubClient *GithubClient
@@ -32,17 +36,38 @@ func NewPreviewClient(kubeClient client.Client, GithubClient *GithubClient) *Pre
 func (p *PreviewClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrllog.FromContext(ctx)
 	preview := &v1alpha1.Preview{}
-	log.Info("start preview reconcile")
+	log.Info("start found preview reconcile")
 	var result ctrl.Result
 	if err := p.KubeClient.Get(ctx, req.NamespacedName, preview); err != nil {
 		if kerrors.IsNotFound(err) {
-			log.Info("preview not found", "name ", req.Name)
-			err := p.Delete(ctx, req.Name)
+			log.Info("successful deleted preview")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 		log.Error(err, "failed to get preview")
 		return ctrl.Result{}, err
 	}
+
+	if preview.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
+			preview.SetFinalizers(append(preview.GetFinalizers(), PREVIEW_FINALIZER))
+			if err := p.KubeClient.Update(ctx, preview); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
+			log.Info("deleting resources related to preview")
+			if err := p.Delete(ctx, preview); err != nil {
+				return ctrl.Result{}, err
+			}
+			preview.SetFinalizers(utils.RemoveString(preview.GetFinalizers(), PREVIEW_FINALIZER))
+			if err := p.KubeClient.Update(ctx, preview); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
 	if err := p.ParsingPreviewTemplate(ctx, preview); err != nil {
 		log.Error(err, "failed to parse preview template")
 		return ctrl.Result{}, err
@@ -106,20 +131,30 @@ func (p *PreviewClient) ParsingPreviewTemplate(ctx context.Context, preview *v1a
 	return nil
 }
 
-func (p *PreviewClient) Delete(ctx context.Context, name string) error {
+func (p *PreviewClient) Delete(ctx context.Context, preview *v1alpha1.Preview) error {
+	log := ctrllog.FromContext(ctx)
 	currentApp := &argocdv1alpha1.ApplicationSet{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      name,
+			Name:      preview.Name,
 			Namespace: "argocd",
 		},
 	}
-	_ = p.KubeClient.Delete(ctx, currentApp)
+	if err := p.KubeClient.Delete(ctx, currentApp); err != nil {
+		log.Error(err, "failed to delete argocd application set")
+	}
 
-	_ = p.KubeClient.Delete(ctx, &corev1.Namespace{
+	if err := p.KubeClient.Delete(ctx, &corev1.Namespace{
 		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+			Name: preview.Name,
 		},
-	})
+	}); err != nil {
+		log.Error(err, "failed to delete namespace")
+	}
+	for _, status := range preview.Status.DeployedStatus {
+		if err := p.GithubClient.DeleteOperatorFile(ctx, "oh-my-deploy", "omd-operator-example", status.Path+"/operator.yaml"); err != nil {
+			log.Error(err, "failed to delete deployed operator file")
+		}
+	}
 	return nil
 }
 

@@ -47,37 +47,21 @@ func (p *PreviewClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	if preview.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
-			preview.SetFinalizers(append(preview.GetFinalizers(), PREVIEW_FINALIZER))
-			if err := p.KubeClient.Update(ctx, preview); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-	} else {
-		if utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
-			log.Info("deleting resources related to preview")
-			if err := p.Delete(ctx, preview); err != nil {
-				return ctrl.Result{}, err
-			}
-			preview.SetFinalizers(utils.RemoveString(preview.GetFinalizers(), PREVIEW_FINALIZER))
-			if err := p.KubeClient.Update(ctx, preview); err != nil {
-				return ctrl.Result{}, err
-			}
-		}
-		return ctrl.Result{}, nil
+	if err := p.Finalize(ctx, preview); err != nil {
+		log.Error(err, "failed to finalize preview")
+		return ctrl.Result{}, err
 	}
 
 	if err := p.ParsingPreviewTemplate(ctx, preview); err != nil {
 		log.Error(err, "failed to parse preview template")
 		return ctrl.Result{}, err
 	}
-	// TODO: create application set using argocd
+
 	if err := p.UpsertApplicationSet(ctx, preview); err != nil {
 		log.Error(err, "failed to upsert application set")
 		return ctrl.Result{}, err
 	}
-	////TODO: create yaml data, upload deploy repo
+
 	if result, err := p.CreatePreviewContent(ctx, preview); err != nil {
 		log.Error(err, "failed to upsert deploy repo")
 		if result.Requeue {
@@ -90,6 +74,30 @@ func (p *PreviewClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 
 	//log.Info("end preview reconcile", "result", result)
 	return result, nil
+}
+
+func (p *PreviewClient) Finalize(ctx context.Context, preview *v1alpha1.Preview) error {
+	log := ctrllog.FromContext(ctx)
+	if preview.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
+			preview.SetFinalizers(append(preview.GetFinalizers(), PREVIEW_FINALIZER))
+			if err := p.KubeClient.Update(ctx, preview); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if utils.ContainsString(preview.GetFinalizers(), PREVIEW_FINALIZER) {
+		log.Info("deleting resources related to preview")
+		if err := p.Delete(ctx, preview); err != nil {
+			return err
+		}
+		preview.SetFinalizers(utils.RemoveString(preview.GetFinalizers(), PREVIEW_FINALIZER))
+		if err := p.KubeClient.Update(ctx, preview); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (p *PreviewClient) ParsingPreviewTemplate(ctx context.Context, preview *v1alpha1.Preview) error {

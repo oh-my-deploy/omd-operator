@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/part-of: omd-operator
     app.kubernetes.io/managed-by: kustomize
     app.kubernetes.io/created-by: omd-operator
+  annotations:
+    program.kb.io: "true"
   name: program-sample
 spec:
   deploy:

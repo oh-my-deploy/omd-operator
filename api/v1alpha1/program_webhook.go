@@ -43,9 +43,9 @@ var _ webhook.Defaulter = &Program{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Program) Default() {
 	programlog.Info("default", "name", r.Name)
-	r.ObjectMeta.Labels = map[string]string{
-		"program.kb.io": "true",
-	}
+	// r.ObjectMeta.Labels = map[string]string{
+	// 	"program.kb.io": "true",
+	// }
 	// r.Annotations = map[string]string{
 	// 	"program.kb.io":         "true",
 	// 	"program.kb.io/program": r.Name,
@@ -53,6 +53,8 @@ func (r *Program) Default() {
 	// 	"program.kb.io/created": "true",
 	// 	"program.kb.io/webhook": "true",
 	// }
+	r.Annotations["program.kb.io/webhook"] = "true"
+	r.Annotations["program.kb.io/created"] = "true"
 	// TODO(user): fill in your defaulting logic.
 }
 

@@ -2,20 +2,26 @@ package driver
 
 import (
 	"context"
+	"reflect"
+	"time"
+
 	argocdv1alpha1 "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
+	"github.com/oh-my-deploy/omd-operator/api/v1alpha1"
 	omdcomv1alpha1 "github.com/oh-my-deploy/omd-operator/api/v1alpha1"
+	"github.com/oh-my-deploy/omd-operator/internal/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
+	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const applicationFinalizer = "argoproj.io/finalizer"
+const applicationFinalizer = "resources-finalizer.argocd.argoproj.io"
+const PROGRAM_FINALIZER = "program.omd.com/finalizer"
 
 type ProgramClient struct {
 	KubeClient client.Client
@@ -33,13 +39,21 @@ func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	klog := log.FromContext(ctx)
 	program := &omdcomv1alpha1.Program{}
 	err := p.KubeClient.Get(ctx, req.NamespacedName, program)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			err = p.Delete(ctx, req)
+	if err := p.KubeClient.Get(ctx, req.NamespacedName, program); err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.Info("successful deleted program")
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
-		klog.Error(err, "Failed to fetch Program")
+		klog.Error(err, "failed to get program")
 		return ctrl.Result{}, err
+	}
+
+	if program.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err := p.ensureFinalizer(ctx, program); err != nil {
+			return ctrl.Result{}, err
+		}
+	} else {
+		return p.handleDeletion(ctx, program)
 	}
 
 	if err = p.SyncArgo(ctx, req, program); err != nil {
@@ -57,10 +71,12 @@ func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 	return ctrl.Result{}, nil
 }
 
-func (p *ProgramClient) Delete(ctx context.Context, req ctrl.Request) error {
+func (p *ProgramClient) Delete(ctx context.Context, program *omdcomv1alpha1.Program) error {
+	klog := log.FromContext(ctx)
+	klog.Info("Deleting ArgoCD application")
 	return p.KubeClient.Delete(ctx, &argocdv1alpha1.Application{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      req.Name,
+			Name:      program.Name,
 			Namespace: "argocd",
 		},
 	})
@@ -132,4 +148,31 @@ func (p *ProgramClient) ConvertToArgoCDApplication(program *omdcomv1alpha1.Progr
 			},
 		},
 	}
+}
+
+func (p *ProgramClient) ensureFinalizer(ctx context.Context, program *v1alpha1.Program) error {
+	log := ctrllog.FromContext(ctx)
+	if !utils.ContainsString(program.GetFinalizers(), PROGRAM_FINALIZER) {
+		log.Info("set finalizer in program")
+		(*program).SetFinalizers(append(program.GetFinalizers(), PROGRAM_FINALIZER))
+		if err := p.KubeClient.Update(ctx, program); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *ProgramClient) handleDeletion(ctx context.Context, program *v1alpha1.Program) (ctrl.Result, error) {
+	log := ctrllog.FromContext(ctx)
+	if utils.ContainsString(program.GetFinalizers(), PROGRAM_FINALIZER) {
+		log.Info("Processing finalize")
+		if err := p.Delete(ctx, program); err != nil {
+			return ctrl.Result{}, err
+		}
+		(*program).SetFinalizers(utils.RemoveString(program.GetFinalizers(), PROGRAM_FINALIZER))
+		if err := p.KubeClient.Update(ctx, program); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	return ctrl.Result{}, nil
 }

@@ -118,6 +118,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "PreviewTemplate")
 		os.Exit(1)
 	}
+	if err = (&omdcomv1alpha1.Program{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Program")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"errors"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -41,13 +43,16 @@ var _ webhook.Defaulter = &Program{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Program) Default() {
 	programlog.Info("default", "name", r.Name)
-	r.Annotations = map[string]string{
-		"program.kb.io":         "true",
-		"program.kb.io/program": r.Name,
-		"program.kb.io/owner":   "program-controller",
-		"program.kb.io/created": "true",
-		"program.kb.io/webhook": "true",
+	r.ObjectMeta.Labels = map[string]string{
+		"program.kb.io": "true",
 	}
+	// r.Annotations = map[string]string{
+	// 	"program.kb.io":         "true",
+	// 	"program.kb.io/program": r.Name,
+	// 	"program.kb.io/owner":   "program-controller",
+	// 	"program.kb.io/created": "true",
+	// 	"program.kb.io/webhook": "true",
+	// }
 	// TODO(user): fill in your defaulting logic.
 }
 
@@ -59,7 +64,9 @@ var _ webhook.Validator = &Program{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Program) ValidateCreate() error {
 	programlog.Info("validate create", "name", r.Name)
-
+	if r.Annotations["program.kb.io"] != "true" {
+		return errors.New("program.kb.io annotation is not set")
+	}
 	// TODO(user): fill in your validation logic upon object creation.
 	return nil
 }

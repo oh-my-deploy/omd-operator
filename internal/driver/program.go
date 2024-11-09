@@ -125,8 +125,10 @@ func (p *ProgramClient) SyncArgo(ctx context.Context, req ctrl.Request, program 
 func (p *ProgramClient) ConvertToArgoCDApplication(program *omdcomv1alpha1.Program) *argocdv1alpha1.Application {
 	return &argocdv1alpha1.Application{
 		ObjectMeta: v1.ObjectMeta{
-			Name:       program.Name,
-			Namespace:  "argocd",
+			Name:      program.Name,
+			Namespace: "argocd",
+			// Finalizers are used to ensure that the resources are not deleted by the garbage collector until the finalizer is removed.
+			// https://argo-cd.readthedocs.io/en/stable/user-guide/app_deletion/#deletion-using-kubectl
 			Finalizers: []string{applicationFinalizer},
 		},
 

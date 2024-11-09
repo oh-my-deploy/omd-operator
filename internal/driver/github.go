@@ -84,3 +84,30 @@ func (g *GithubClient) DeleteOperatorFile(ctx context.Context, owner string, rep
 	}
 	return err
 }
+
+func (g *GithubClient) CreateWorkflowDispatch(ctx context.Context, owner string, repoName string, ref string, inputs map[string]interface{}) error {
+	workflowDispatch := github.CreateWorkflowDispatchEventRequest{
+		Ref:    "dev",
+		Inputs: inputs,
+	}
+	res, err := g.client.Actions.CreateWorkflowDispatchEventByFileName(ctx, owner, repoName, "preview.yaml", workflowDispatch)
+	if res != nil {
+		if res.StatusCode == http.StatusNotFound {
+			return errors.New("resource file not found")
+		}
+	}
+	return err
+}
+
+func (g *GithubClient) FetchWorkflow(ctx context.Context, owner string, repoName string, workflowID int64) (string, error) {
+	workflow, res, err := g.client.Actions.GetWorkflowByID(ctx, owner, repoName, workflowID)
+	if res != nil {
+		if res.StatusCode == http.StatusNotFound {
+			return "", errors.New("resource file not found")
+		}
+	}
+	if err != nil {
+		return "", err
+	}
+	return *workflow.State, nil
+}

@@ -125,8 +125,9 @@ func (p *ProgramClient) SyncArgo(ctx context.Context, req ctrl.Request, program 
 func (p *ProgramClient) ConvertToArgoCDApplication(program *omdcomv1alpha1.Program) *argocdv1alpha1.Application {
 	return &argocdv1alpha1.Application{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      program.Name,
-			Namespace: "argocd",
+			Name:       program.Name,
+			Namespace:  "argocd",
+			Finalizers: []string{applicationFinalizer},
 		},
 
 		Spec: argocdv1alpha1.ApplicationSpec{

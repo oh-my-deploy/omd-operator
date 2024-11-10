@@ -23,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -42,19 +43,11 @@ var _ webhook.Defaulter = &Program{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Program) Default() {
-	programlog.Info("default", "name", r.Name)
-	// r.ObjectMeta.Labels = map[string]string{
-	// 	"program.kb.io": "true",
-	// }
-	// r.Annotations = map[string]string{
-	// 	"program.kb.io":         "true",
-	// 	"program.kb.io/program": r.Name,
-	// 	"program.kb.io/owner":   "program-controller",
-	// 	"program.kb.io/created": "true",
-	// 	"program.kb.io/webhook": "true",
-	// }
-	r.Annotations["program.kb.io/webhook"] = "true"
-	r.Annotations["program.kb.io/created"] = "true"
+	programlog.Info("webhook default", "name", r.Name)
+	if r.Annotations["program.kb.io/webhook"] == "" {
+		r.Annotations["program.kb.io/webhook"] = "true"
+	}
+
 	// TODO(user): fill in your defaulting logic.
 }
 
@@ -64,27 +57,28 @@ func (r *Program) Default() {
 var _ webhook.Validator = &Program{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Program) ValidateCreate() error {
+func (r *Program) ValidateCreate() (admission.Warnings, error) {
 	programlog.Info("validate create", "name", r.Name)
 	if r.Annotations["program.kb.io"] != "true" {
-		return errors.New("program.kb.io annotation is not set")
+		return nil, errors.New("program.kb.io annotation is not set")
 	}
+
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	return []string{""}, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Program) ValidateUpdate(old runtime.Object) error {
+func (r *Program) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	programlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
-	return nil
+	return []string{""}, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Program) ValidateDelete() error {
+func (r *Program) ValidateDelete() (admission.Warnings, error) {
 	programlog.Info("validate delete", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object deletion.
-	return nil
+	return []string{""}, nil
 }

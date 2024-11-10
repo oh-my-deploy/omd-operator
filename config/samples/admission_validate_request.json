@@ -1,0 +1,111 @@
+{
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "kind": "AdmissionReview",
+  "request": {
+    "kind": {
+      "group": "omd.com",
+      "version": "v1alpha1",
+      "kind": "Program"
+    },
+    "resource": {
+      "group": "omd.com",
+      "version": "v1alpha1",
+      "resource": "Program"
+    },
+    "operation": "CREATE",
+    "name": "program-sample",
+    "namespace": "default",
+    "userInfo": {
+      "username": "kubernetes-admin",
+      "groups": ["system:masters", "system:authenticated"]
+    },
+    "object": {
+      "apiVersion": "omd.com/v1alpha1",
+      "kind": "Program",
+      "metadata": {
+        "creationTimestamp": "2024-11-09T10:44:47Z",
+        "finalizers": ["program.omd.com/finalizer"],
+        "generation": 3,
+        "labels": {
+          "app.kubernetes.io/created-by": "omd-operator",
+          "app.kubernetes.io/instance": "program-sample",
+          "app.kubernetes.io/managed-by": "kustomize",
+          "app.kubernetes.io/name": "program",
+          "app.kubernetes.io/part-of": "omd-operator"
+        },
+        "name": "program-sample",
+        "namespace": "default",
+        "resourceVersion": "5303718",
+        "uid": "277b7fbe-cb95-440f-bfb4-d088474ff1f0"
+      },
+      "spec": {
+        "app": {
+          "appType": "server",
+          "container": {
+            "image": "nginx:1.26.0",
+            "name": "nginx",
+            "ports": [
+              {
+                "containerPort": 80,
+                "name": "http",
+                "protocol": "TCP"
+              }
+            ],
+            "resources": {}
+          }
+        },
+        "deploy": {
+          "branch": "main",
+          "path": "demo-1",
+          "repo": "git@github.com:oh-my-deploy/omd-operator-example",
+          "server": "https://kubernetes.default.svc"
+        },
+        "ingress": {
+          "annotations": {
+            "nginx.ingress.kubernetes.io/rewrite-target": "/"
+          },
+          "enabled": false,
+          "rules": {
+            "host": "nginx.example.com",
+            "paths": [
+              {
+                "path": "/"
+              }
+            ]
+          }
+        },
+        "scheduler": {
+          "affinity": {},
+          "hpa": {
+            "maxReplicas": 10,
+            "metrics": [
+              {
+                "resource": {
+                  "name": "cpu",
+                  "target": {
+                    "averageUtilization": 50,
+                    "type": "Utilization"
+                  }
+                },
+                "type": "Resource"
+              }
+            ],
+            "minReplicas": 3
+          },
+          "pdb": {
+            "enabled": false,
+            "minAvailable": 2
+          }
+        },
+        "service": {
+          "enabled": true
+        },
+        "serviceAccount": {
+          "create": true,
+          "serviceAccountName": "test"
+        }
+      }
+    }
+  },
+  "dryRun": false
+}

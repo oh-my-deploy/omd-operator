@@ -38,7 +38,6 @@ func NewProgramClient(kubeClient client.Client, schema *runtime.Scheme) *Program
 func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	klog := log.FromContext(ctx)
 	program := &omdcomv1alpha1.Program{}
-	err := p.KubeClient.Get(ctx, req.NamespacedName, program)
 	if err := p.KubeClient.Get(ctx, req.NamespacedName, program); err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.Info("successful deleted program")
@@ -56,7 +55,7 @@ func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return p.handleDeletion(ctx, program)
 	}
 
-	if err = p.SyncArgo(ctx, req, program); err != nil {
+	if err := p.SyncArgo(ctx, req, program); err != nil {
 		if errors.IsConflict(err) {
 			return ctrl.Result{Requeue: true, RequeueAfter: time.Second * 15}, nil
 		}
@@ -64,7 +63,7 @@ func (p *ProgramClient) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 		return ctrl.Result{}, err
 	}
 
-	if err = p.UpsertProgramStatus(ctx, program); err != nil {
+	if err := p.UpsertProgramStatus(ctx, program); err != nil {
 		klog.Error(err, err.Error())
 		return ctrl.Result{}, err
 	}
